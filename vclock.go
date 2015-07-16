@@ -5,27 +5,29 @@ type VClock struct {
 	clocks map[string]int
 }
 
-func (vc *VClock) Before(other *VClock) (ret bool) {
+func (vc *VClock) Before(other *VClock) bool {
 	for id, clock := range vc.clocks {
 		if other.clocks[id] < clock {
-			return
+			return false
 		}
 	}
 
-	ret = true
-	return
+	return true
 }
 
-func (vc *VClock) Concurrent(other *VClock) (ret bool) {
+func (vc *VClock) Concurrent(other *VClock) bool {
+	ahead := 0
+	behind := 0
+
 	for id, clock := range vc.clocks {
-		val, ok := other.clocks[id]
-		if ok && val < clock {
-			return
+		if other.clocks[id] <= clock {
+			behind++
+		} else if other.clocks[id] >= clock {
+			ahead++
 		}
 	}
 
-	ret = true
-	return
+	return (ahead > 0 && behind > 0) || (ahead == 0 && behind == 0)
 }
 
 func (vc *VClock) Tick() {
@@ -43,11 +45,8 @@ func (vc VClock) Merge(other *VClock) {
 }
 
 func New(id string) *VClock {
-	clocks := map[string]int{}
-	clocks[id] = 0
-
 	return &VClock{
 		Id:     id,
-		clocks: clocks,
+		clocks: map[string]int{},
 	}
 }

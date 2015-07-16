@@ -20,6 +20,21 @@ func TestConcurrent(t *testing.T) {
 	if !a.Concurrent(b) {
 		t.Error("Initial processes should be concurrent")
 	}
+
+	a.Tick()
+	b.Tick()
+	b.Merge(a)
+
+	if a.Concurrent(b) {
+		t.Error("b should be ahead of a")
+	}
+
+	a.Merge(b)
+	b.Tick()
+
+	if !a.Concurrent(b) {
+		t.Error("a and b should be concurrent")
+	}
 }
 
 func TestBefore(t *testing.T) {
