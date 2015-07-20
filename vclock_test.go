@@ -1,6 +1,9 @@
 package vclock
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestSameProcess(t *testing.T) {
 	a1 := New("a")
@@ -100,5 +103,54 @@ func TestMerge(t *testing.T) {
 
 	if a.clocks["b"] != 2 {
 		t.Error("Merge should increment to higher values")
+	}
+}
+
+type Process struct {
+	*VClock
+	socket chan *VClock
+}
+
+func (p *Process) send(other *Process) {
+	other.socket <- p.VClock
+}
+
+func NewProcess(id string) *Process {
+	p := &Process{New(id), make(chan *VClock)}
+
+	go func() {
+		for {
+			clock := <-p.socket
+			p.Merge(clock)
+		}
+	}()
+
+	return p
+}
+
+func TestProcesses(t *testing.T) {
+	Pi := NewProcess("Pi")
+	Pj := NewProcess("Pj")
+
+	Pi.Tick()
+	Pj.Tick()
+	Pi.send(Pj)
+
+	if !Pi.Before(Pj.VClock) {
+		t.Error("Pi should be behind")
+	}
+
+	Pi.Tick()
+
+	if !Pi.Concurrent(Pj.VClock) {
+		t.Error("Pi and Pj should be concurrent")
+	}
+
+	Pj.send(Pi)
+
+	time.Sleep(time.Millisecond * 10)
+
+	if !Pj.Before(Pi.VClock) {
+		t.Error("Pj should be behind")
 	}
 }

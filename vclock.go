@@ -16,18 +16,22 @@ func (vc *VClock) Before(other *VClock) bool {
 }
 
 func (vc *VClock) Concurrent(other *VClock) bool {
-	ahead := 0
-	behind := 0
+	selfAhead := 0
+	otherAhead := 0
 
 	for id, clock := range vc.clocks {
 		if other.clocks[id] <= clock {
-			behind++
-		} else if other.clocks[id] >= clock {
-			ahead++
+			selfAhead++
 		}
 	}
 
-	return (ahead > 0 && behind > 0) || (ahead == 0 && behind == 0)
+	for id, clock := range other.clocks {
+		if vc.clocks[id] <= clock {
+			otherAhead++
+		}
+	}
+
+	return (selfAhead > 0) && (otherAhead > 0)
 }
 
 func (vc *VClock) Tick() {
